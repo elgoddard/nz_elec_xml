@@ -16,6 +16,7 @@ def log_report(level,message)
 	end
 end
 
+
 def load_XML(xmlfile)
 	@xmlfile = xmlfile
 	log_report(5,"Connecting the XML file @ #{@xmlfile}")
