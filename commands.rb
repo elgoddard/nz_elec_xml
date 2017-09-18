@@ -29,3 +29,16 @@ def load_XML(xmlfile)
 	return @doc
 end
 
+
+def load_HTML(htmlfile)
+	@htmlfile = htmlfile
+	log_report(5,"Connecting the XML file @ #{@htmlfile}")
+
+	@doc = Nokogiri::HTML(open(@htmlfile)) do | config |
+		config.noblanks
+	end
+	@doc.remove_namespaces!
+
+	return @doc
+end
+

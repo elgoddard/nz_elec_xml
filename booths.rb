@@ -10,7 +10,7 @@ puts "This will parse the booths for upcoming NZ election and save to CSV"
 load_XML('http://media.election.net.nz/xml/votingplaces.xml')
 
 booths = @doc.xpath("//votingplace")
-bths = "booth_number|district_id|booth_id|booth_address"
+bths = "booth_number|district_id|booth_id|booth_address\n"
 
 booths.each do |bth|
 	booth_number = bth['vp_no']
