@@ -131,20 +131,95 @@ def process_districts(tail)
 	puts "#{$area}s complete."
 end
 
-def process_parties(doc)
-	@doc = doc
+def process_parties(tail)
 
 	puts "Processing parties."
 
-	sql = "drop table if exists #{$elec}_parties; CREATE TABLE #{$elec}_parties ( code varchar(5) NOT NULL, name varchar(50) DEFAULT NULL, PRIMARY KEY (`code`));"
-	sql << "truncate #{$elec}_parties; insert into #{$elec}_parties (code, name) values "
+	load_XML("#{$xml_url}#{tail}")
 
-	party = @doc.xpath("//parties/party")
-	party.each do |part|
-		sql << "(\"#{part['code']}\", \"#{part['name']}\"),"
+	sql = "drop table if exists #{$elec}_parties; CREATE TABLE #{$elec}_parties ( party_number int NOT NULL, abbreviation varchar(10), short_name varchar(50) DEFAULT NULL, long_name varchar(50) DEFAULT NULL, registered varchar(5), PRIMARY KEY (`party_number`));"
+	sql << "truncate #{$elec}_parties; insert into #{$elec}_parties (party_number, abbreviation, short_name, long_name, registered) values "
+
+	parties = @doc.xpath("//party")
+
+	parties.each do |party|
+		party_number = party['p_no']
+		abbreviation = party.xpath("./abbrev").text
+		short_name = party.xpath("./short_name").text
+		long_name = party.xpath("./party_name").text
+		registered = party.xpath("./registered").text
+		sql << "(#{party_number},\"#{abbreviation}\",\"#{short_name}\",\"#{long_name}\",\"#{registered}\"),"
 	end
+
 	sql = sql[0..-2]
 	sql << ";"
 	sql_upload(sql)
 	puts "Parties complete."
+end
+
+def create_results_table
+	begin
+		sql_upload("select * from #{$elec}_results;").first
+	rescue
+		sql = "CREATE TABLE #{$elec}_results ( `id` int(11) NOT NULL AUTO_INCREMENT, `#{$area}_id` int(2) DEFAULT NULL, `booth_number` int DEFAULT NULL, `entity_id` int DEFAULT NULL, `vote_type` int DEFAULT NULL, `votes` int(4) DEFAULT NULL, last_update timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+		PRIMARY KEY (`id`), UNIQUE KEY `idx_unique` (`#{$area}_id`,`booth_number`,`entity_id`,`vote_type`), KEY `idx_dcv` (`#{$area}_id`,`entity_id`,`vote_type`), KEY `idx_bcv` (`booth_number`,`entity_id`,`vote_type`), KEY `idx_cv` (`entity_id`,`vote_type`), KEY `idx_v` (`vote_type`));"
+		sql_upload(sql)
+		puts "Results table complete"
+	end
+end
+
+def create_votetypes_table
+	begin
+		sql_upload("select * from #{$elec}_vote_types;").first
+	rescue
+		sql = "CREATE TABLE #{$elec}_vote_types (`vote_type` int(11) NOT NULL AUTO_INCREMENT,`type` varchar(20) DEFAULT NULL, `description` varchar(60) DEFAULT NULL, PRIMARY KEY (`vote_type`), UNIQUE KEY `idx_type` (`type`));"
+		sql_upload(sql)
+		sql_upload("INSERT INTO #{$elec}_vote_types (`vote_type`, `type`, `description`) VALUES ('1', 'party_primary', 'party primary votes for polling place'),('2', 'candidate_primary', 'candidate primary votes for polling place');")
+		puts "VoteTypes table complete"
+	end
+end
+
+def process_results
+
+	puts "Processing the primary results"
+	
+
+	(01..71).each do |num|
+		puts "Processing Electorate #{num}"
+		sql = "INSERT INTO #{$elec}_results (#{$area}_id, booth_number, entity_id, vote_type, votes) VALUES "
+
+		num = num.to_s.rjust(2,'0')
+		link = "#{$xml_url}e#{num}/votingplaces/"
+		page = load_HTML(link)
+		as = page.xpath(".//a")
+		as.each do |a|
+			if a.text.include? "xml"
+				link2 = "http://media.election.net.nz/xml/e#{num}/votingplaces/#{a.text}"
+				bth = load_XML(link2)
+
+				vp = bth.at_xpath("./votingplace")
+
+				parties = bth.xpath("//party")
+				parties.each do |party|
+					party_number = party['p_no']
+					p_votes = party.xpath("./votes").text
+					sql << "(#{vp['e_no']},#{vp['vp_no']},#{party_number},1,#{p_votes}),"
+				end
+
+				candidates = bth.xpath("//candidate")
+				candidates.each do |candidate|
+					candidate_number = candidate["c_no"]
+					c_votes = candidate.xpath("./votes").text
+					sql << "(#{vp['e_no']},#{vp['vp_no']},#{candidate_number},2,#{c_votes}),"
+				end
+			end
+		end
+
+		sql  = sql[0..-2]	#chop off the last comma
+		sql << "ON DUPLICATE KEY UPDATE votes = values(votes);"
+		sql_upload(sql)
+
+	end
+
+	puts "Primary complete."
 end

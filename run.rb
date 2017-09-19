@@ -18,12 +18,11 @@ puts "Auto Election Upload for #{$elec}"
 if $run_method == 'setup'
 	# process_booths("votingplaces.xml")
 	# process_candidates("candidates.xml")
-	process_districts("electorates.xml")
-	# process_parties(@doc)
+	# process_districts("electorates.xml")
+	# process_parties("parties.xml")
 	# create_results_table	#only creates if doesn't exist
 	# create_votetypes_table	#only creates if doesn't exist
 	# create_views			#drops view and recreates
 elsif $run_method == 'results'
-	process_primaries(@doc)
-	process_tcp(@doc)
+	process_results
 end
