@@ -203,14 +203,14 @@ def process_results
 				parties.each do |party|
 					party_number = party['p_no']
 					p_votes = party.xpath("./votes").text
-					sql << "(#{vp['e_no']},#{vp['vp_no']},#{party_number},1,#{p_votes}),"
+					sql << "(#{vp['e_no']},#{a.text[5..7]},#{party_number},1,#{p_votes}),"
 				end
 
 				candidates = bth.xpath("//candidate")
 				candidates.each do |candidate|
 					candidate_number = candidate["c_no"]
 					c_votes = candidate.xpath("./votes").text
-					sql << "(#{vp['e_no']},#{vp['vp_no']},#{candidate_number},2,#{c_votes}),"
+					sql << "(#{vp['e_no']},#{a.text[5..7]},#{candidate_number},2,#{c_votes}),"
 				end
 			end
 		end

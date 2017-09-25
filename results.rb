@@ -27,14 +27,14 @@ results = "electorate_number|booth_number|ttype|number|votes\n"
 			parties.each do |party|
 				party_number = party['p_no']
 				p_votes = party.xpath("./votes").text
-				results << "#{vp['e_no']}|#{vp['vp_no']}|'p'|#{party_number}|#{p_votes}\n"
+				results << "#{vp['e_no']}|#{a.text[5..7]}|'p'|#{party_number}|#{p_votes}\n"
 			end
 
 			candidates = bth.xpath("//candidate")
 			candidates.each do |candidate|
 				candidate_number = candidate["c_no"]
 				c_votes = candidate.xpath("./votes").text
-				results << "#{vp['e_no']}|#{vp['vp_no']}|'c'|#{candidate_number}|#{c_votes}\n"
+				results << "#{vp['e_no']}|#{a.text[5..7]}|'c'|#{candidate_number}|#{c_votes}\n"
 			end
 		end
 	end
